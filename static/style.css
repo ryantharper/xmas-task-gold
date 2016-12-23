@@ -1,0 +1,11 @@
+body {
+  padding-top: 5rem;
+}
+.main {
+  text-align: center;
+}
+
+.customBtn {
+    width: 150px;
+    margin: 10px;
+}
