@@ -40,9 +40,9 @@
                 <button type="submit" formaction="/delete" class="btn btn-outline-primary btn-lg">Delete Account</button>
             </form>
 
-            <div class="col-md-10">
+            <div class="col-md-8">
                 % for i in items:
-                <div class="col-sm-4">
+                <div class="col-sm-6">
                     <div class="card card-block">
                         <p class="card-title"><b>{{i[1]}}</b></p>
                         <p class="card-text">£{{i[3]}}</p>
@@ -53,14 +53,14 @@
                                 <option value="{{n+1}}">{{n+1}}</option>
                                 % end
                             </select>
-                            <input type="submit" value="BUY">
+                            <input type="submit" value="Add to Cart">
                         </form>
                     </div>
                 </div>
                 % end
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md-3" style="margin-left:0px">
                 <h3>Cart</h3>
 
 
@@ -73,12 +73,17 @@
                         </tr>
                     </thead>
                     <tbody>
-                        % for x in range(5):
+                        % for a in basket:
                         <tr>
-                            <td>Oral B Electric Toothbrush</td>
-                            <td>3</td>
-                            <td>asd</td>
-                            <td>Remove (form)</td> <!-- use form to remove item-->
+                            <td>{{a[1]}}</td>
+                            <td>{{a[2]}}</td>
+                            <td>£{{a[3]}}</td>
+                            <td>
+                            		<form method="post" action="/shoppermain">
+																		<input type="hidden" name="orderItemId" value="{{a[0]}}">
+																		<input type="submit" name="delItem" value="X">
+                            		</form>
+                            </td>
                         </tr>
                         %end
                     </tbody>

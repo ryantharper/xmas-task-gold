@@ -15,12 +15,15 @@ things to do/work out
 
     multiple items in order table?
 
+    ->  maybe add "groupId" to orders table OR
+    --> create new table (group_orders) with groupId being 'custId'x'itemId'x'itemId' e.g. 1x22x13x.... [list it w for loop]
 
+    database for current order?
 
 """
 
 import sqlite3 as lite, os, sys
-from tabulate import tabulate
+#from tabulate import tabulate
 # BASE ITEMS, WILL BE ENTERED ON FIRST RUN
 items = [{'name': 'Baubles 50 pk', 'purchCost': 3.00, 'saleCost': 5.00, 'stock_lvl': 30,'cat':'xmas_decs', 'qtyBought':3},
             {'name': 'Tinsel Red', 'purchCost':0.50, 'saleCost': 1.00, 'stock_lvl': 25,'cat':'xmas_decs', 'qtyBought':1},
@@ -104,6 +107,35 @@ class Store:
         self.conn.execute("""CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, custId INTEGER,
         itemId INTEGER, quantity INTEGER NOT NULL, cost REAL NOT NULL, FOREIGN KEY(itemId) REFERENCES items(id), FOREIGN KEY(custId) REFERENCES customers(id))""")
 
+    # --------------------- TABLE FOR CURRENT ORDER ---------------------
+
+    def createTableCurrentOrders(self): # create on login
+        self.conn.execute("DROP TABLE IF EXISTS current_order")
+        self.conn.execute("""CREATE TABLE current_order (id INTEGER PRIMARY KEY, itemId INTEGER, quantity INTEGER, cost REAL, FOREIGN KEY(itemId) REFERENCES items(id))""")
+
+    def insert_data_current_order(self, itemId, qty):
+        self.c.execute("SELECT saleCost FROM items WHERE id={}".format(itemId))
+        cost = self.c.fetchall()[0][0]
+        cost = qty * int(cost)
+        self.conn.execute("INSERT INTO current_order (itemId, quantity, cost) VALUES (?, ?, ?)", (itemId, qty, cost))
+        self.conn.commit()
+
+    def getItemDetails_CurrentOrder(self):
+        self.c.execute("SELECT * FROM current_order") #[0]=id, [1]=itemId, [2]=qty, [3]=cost
+        currentOrdersTuples = self.c.fetchall()
+        # creates list of lists instead of list of tuples --> becomes mutable
+        currentOrders = [list(e) for e in currentOrdersTuples]
+
+        # replaces itemId with item name
+        for n in currentOrders:
+            self.c.execute("SELECT name FROM items WHERE id={}".format(n[1]))
+            n[1] = self.c.fetchall()[0][0]
+
+        return currentOrders
+
+    def removeOrder(self, id_):
+        self.conn.execute("DELETE FROM current_order WHERE id={}".format(id_))
+        self.conn.commit()
     # --------------------- INSERTS ---------------------
 
     # ADD NEW -- ITEM
@@ -185,10 +217,14 @@ def main():
     else:
         print("Database exists, assuming table and initial items do too.")
 
+    #store.createTableCurrentOrders()
     #print(store.showOrderHistory(1))
+    #store.insert_data_current_order(1,3)
+    #store.insert_data_current_order(3,6)
 
+    #store.getItemDetails_CurrentOrder()
     #loginUser(store)
     #store.showOrderHistory(1)
     #userOption(store)
 
-main()
+#main()

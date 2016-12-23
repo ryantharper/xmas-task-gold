@@ -21,8 +21,9 @@ SILVER TO DO:
 
     ;> maybe DO shopper?id=XX  -> this used for order table
 
-"""
+# database of current order? - wiped when user goes back/buys
 
+"""
 # Bottle Imports
 from bottle import route, run, static_file, template, request, redirect
 # Gets Store class from main Python file.
@@ -99,6 +100,7 @@ def loginPagePost():
     if username in validUsernames:
         store.c.execute("SELECT id FROM customers WHERE username='{}'".format(username))
         sid = store.c.fetchone()[0]
+        store.createTableCurrentOrders()
         return redirect('/shoppermain?sid={}'.format(sid))
     else:
         return redirect('login?error=Wrong Username')
@@ -112,11 +114,30 @@ def shopperPage():
     userId = request.query.sid
     store.c.execute("SELECT firstname FROM customers WHERE id=?", (userId,))
     name = store.c.fetchone()[0]
-    return template('shoppermain', items=store.printItems(1), shopperName=name)
+
+    """
+    ordItemId = request.forms.get('orderItemId')
+    if ordItemId == None:
+        pass
+    else:
+        store.removeOrder(ordItemId)
+    """
+    return template('shoppermain', items=store.printItems(1), shopperName=name, basket=store.getItemDetails_CurrentOrder())
 
 # DOES STUFF WITH FORM -> when shopper buys item
 @route('/shoppermain', method='POST')
 def shopperPage2():
+    for k in request.forms:
+        print(k, file=sys.stderr)
+        if k.startswith('numItems.'):
+            itemId = k.partition('.')[-1]
+            numItems = int(request.forms.get(k))
+            store.insert_data_current_order(itemId, numItems)
+        elif k.startswith('orderItemId'):
+            ordItemId = request.forms.get(k)
+            store.removeOrder(ordItemId)
+
+    """
     for k in request.forms:
         if k.startswith('numItems.'):
             itemId = k.partition('.')[-1]
@@ -124,6 +145,7 @@ def shopperPage2():
             store.updateStock(itemId,-numItems)
             store.insert_data_order(userId,itemId,numItems)
 
+    """
     return redirect('/shoppermain?sid={}'.format(userId)) # redirects to shoppermain func
 
 # EDIT ACCOUNT
