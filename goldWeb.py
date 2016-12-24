@@ -1,20 +1,30 @@
 """
 
-
-
+- Prevent SQL injection
 
 """
 # Bottle Imports
-from bottle import route, run, static_file, template, request, redirect
+from bottle import app, route, run, static_file, template, request, redirect, app
 # Gets Store class from main Python file.
 from xmasTaskGold import Store
 # other imports
 import sqlite3 as lite, sys, ast
 
+# Beaker
+from beaker.middleware import SessionMiddleware
+
 # Creates instance of the store class with the database and table names.
 store = Store(lite.connect('festiveshop.db'))
 
-top5c = store.top5custs()
+sessions_opts = {
+    'session.type': 'memory',
+    'session.cookie_expires': 300,
+    'session.auto': True
+}
+
+bApp = SessionMiddleware(app(), sessions_opts)
+
+#top5c = store.top5custs()
 
 # Main Index Page
 @route('/')
@@ -75,12 +85,19 @@ def loginPagePost():
     store.c.execute("SELECT username FROM customers")
     validUsernames = [u[0] for u in store.c.fetchall()]
 
+    # session
+    s = request.environ.get('beaker.session')
+
     username = request.forms.get('username')
     if username in validUsernames:
         store.c.execute("SELECT id FROM customers WHERE username='{}'".format(username))
-        sid = store.c.fetchone()[0]
+        shopperid = store.c.fetchone()[0] # (was sid=..)
         store.createTableCurrentOrders()
-        return redirect('/shoppermain?sid={}'.format(sid))
+
+        s['sid'] = shopperid
+
+        return redirect('/shoppermain')
+        #return redirect('/shoppermain?sid={}'.format(sid))
     else:
         return redirect('login?error=Wrong Username')
     #return template('login')
@@ -89,16 +106,26 @@ def loginPagePost():
 
 @route('/shoppermain', method='GET')
 def shopperPage():
-    global userId
-    userId = request.query.sid
+    #global userId
+    #userId = request.query.sid
+
+    s = request.environ.get('beaker.session')
+    userId = s['sid']
+    #return str(userId)
+
     store.c.execute("SELECT firstname FROM customers WHERE id=?", (userId,))
     name = store.c.fetchone()[0]
 
     return template('shoppermain', items=store.printItems(1), shopperName=name, basket=store.getItemDetails_CurrentOrder())
 
 # POST -> 'add to cart' and 'X' buttons, adds and removes to/from cart
+
 @route('/shoppermain', method='POST')
 def shopperPage2():
+
+    s = request.environ.get('beaker.session')
+    userId = s['sid']
+
     for k in request.forms:
         # ADDING ITEM TO BASKET
         if k.startswith('numItems.'):
@@ -132,27 +159,37 @@ def shopperPage2():
             store.insert_data_order(userId,itemId,numItems)
 
     """
-    return redirect('/shoppermain?sid={}'.format(userId)) # redirects to shoppermain func
+    return redirect('/shoppermain')
+    #return redirect('/shoppermain?sid={}'.format(userId)) # redirects to shoppermain func
 
 # EDIT ACCOUNT
 @route('/editaccount', method='GET')
 def editAccountPage():
+
     try:
         pageError = request.query.error
     except:
         pageError = "Hello, Shopper!"
 
+    s = request.environ.get('beaker.session')
+    userId = s['sid']
+
     store.c.execute("SELECT * FROM customers WHERE ID={}".format(userId))
     userDetails = store.c.fetchall()
 
-    return template('editaccount', details=userDetails, sid=userId, error=pageError)
+
+    return template('editaccount', details=userDetails, error=pageError)
+    #return template('editaccount', details=userDetails, sid=userId, error=pageError)
 
 @route('/editaccount', method='POST')
 def editAccountPagePost():
     store.c.execute("SELECT username FROM customers")
     validUsernames = [u[0] for u in store.c.fetchall()]
 
-    custId = request.forms.get('custId')
+    s = request.environ.get('beaker.session')
+    custId = s['sid']
+
+    #custId = request.forms.get('custId')
     colToEdit = request.forms.get('toEdit')
     newValue = request.forms.get('newValue')
 
@@ -166,16 +203,24 @@ def editAccountPagePost():
 # ORDER HISTORY
 @route('/orders')
 def orderHistory():
+    s = request.environ.get('beaker.session')
+    userId = s['sid']
     orderDetails = store.showOrderHistory(userId)
-    return template('orders', details = orderDetails, sid=userId)
+    return template('orders', details = orderDetails)
+    #return template('orders', details = orderDetails, sid=userId)
 
 # DELETE ACCOUNT
 @route('/delete', method='GET')
 def deleteAccount():
-    return template('delete', sid=userId)
+    s = request.environ.get('beaker.session')
+    userId = s['sid']
+    return template('delete')
+    #return template('delete', sid=userId)
 
 @route('/delete', method='POST')
 def delete():
+    s = request.environ.get('beaker.session')
+    userId = s['sid']
     store.deleteUser(userId)
     redirect('/shopper')
 
@@ -226,5 +271,5 @@ def top5Items():
 def top5Customers():
     return template('top5customers', top5custs=top5c)
 
-
-run(host='localhost', port='8080', debug=True)
+run(app=bApp, host='192.168.0.17', port=8080)
+#run(host='localhost', port='8080', debug=True)

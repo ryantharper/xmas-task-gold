@@ -32,13 +32,10 @@
                     - SHOW ORDER HISTORY
                     - DELETE ACCOUNT
 
-
-            <form method='get' action="/shoppermain?id={{sid}}">
-                <button type="submit" class="btn btn-outline-primary btn-lg customBtn">Back</button>
-            </form>
             -->
 
-            <a href="/shoppermain?sid={{sid}}">Back</a>
+            <a href="/shoppermain">Back</a>
+
 
             <table class="table">
                 <thead>

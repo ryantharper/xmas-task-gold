@@ -19,7 +19,8 @@
         <div class="main">
             <h2>Are you sure you want to delete your account?</h2>
 
-            <a href="/shoppermain?sid={{sid}}">Back</a>
+            <a href="/shoppermain">Back</a>
+            <!--<a href="/shoppermain?sid={{sid}}">Back</a>-->
 
             <form method='post' action="">
                 <button type="submit" class="btn btn-outline-primary btn-lg customBtn">Delete</button>

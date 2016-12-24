@@ -39,7 +39,8 @@
             </form>
             -->
 
-            <a href="/shoppermain?sid={{sid}}">Back</a>
+            <a href="/shoppermain">Back</a>
+            <!--<a href="/shoppermain?sid={{sid}}">Back</a>-->
 
             <table class="table">
                 <thead>

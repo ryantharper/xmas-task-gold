@@ -122,7 +122,7 @@ class Store:
         self.conn.commit()
 
     def getItemDetails_CurrentOrder(self):
-        self.c.execute("SELECT id, itemId, quantity, printf('%.2f', cost) FROM current_order") #[0]=id, [1]=itemId, [2]=qty, [3]=cost
+        self.c.execute("SELECT id, itemId, quantity, round(cost, 2) FROM current_order") #[0]=id, [1]=itemId, [2]=qty, [3]=cost
         currentOrdersTuples = self.c.fetchall()
         # creates list of lists instead of list of tuples --> becomes mutable
         currentOrders = [list(e) for e in currentOrdersTuples]
@@ -202,10 +202,10 @@ class Store:
 
     def printItems(self, usr):
         if usr == 1: # for shoppers
-            self.c.execute("SELECT id, name, printf('%.2f', purchCost), printf('%.2f', saleCost), stock_lvl, cat, quantity_bought FROM items WHERE stock_lvl > 0") # gets item where the stock is not zero
+            self.c.execute("SELECT id, name, round(purchCost, 2), round(saleCost, 2), stock_lvl, cat, quantity_bought FROM items WHERE stock_lvl > 0") # gets item where the stock is not zero
             return self.c.fetchall()
         else: # for workers
-            self.c.execute("SELECT id, name, printf('%.2f', purchCost), printf('%.2f', saleCost), stock_lvl, cat, quantity_bought FROM items") # gets all items
+            self.c.execute("SELECT id, name, round(purchCost, 2), round(saleCost, 2), stock_lvl, cat, quantity_bought FROM items") # gets all items
             return self.c.fetchall()
 
     def updateUserAcc(self, custId, col, new):
