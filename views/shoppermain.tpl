@@ -61,7 +61,7 @@
             </div>
 
             <div class="col-md-3" style="margin-left:0px">
-                <h3>Cart</h3>
+                <h3>Card</h3>
 
 
                 <table class="table table-striped table-bordered table-hover">
@@ -73,15 +73,17 @@
                         </tr>
                     </thead>
                     <tbody>
+                        %total=float()
                         % for a in basket:
                         <tr>
                             <td>{{a[1]}}</td>
                             <td>{{a[2]}}</td>
                             <td>£{{a[3]}}</td>
+                            %total=total+float(a[3])
                             <td>
                             		<form method="post" action="/shoppermain">
-																		<input type="hidden" name="orderItemId" value="{{a[0]}}">
-																		<input type="submit" name="delItem" value="X">
+										<input type="hidden" name="orderItemId" value="{{a[0]}}">
+										<input type="submit" name="delItem" value="X">
                             		</form>
                             </td>
                         </tr>
@@ -91,10 +93,16 @@
                         <tr>
                             <th></th>
                             <th>Total Cost:</th>
-                            <th></th>
+                            <th>£{{'%.2f'%total}}</th>
                         </tr>
                     </tfoot>
                 </table>
+
+                <form class="" method="post">
+                    <input type="hidden" name="buyBasket" value="{{basket}}">
+                    <input type="submit" name="buyItems" value="Buy" style="float:right" class="btn btn-primary">
+                </form>
+
 
             </div>
 

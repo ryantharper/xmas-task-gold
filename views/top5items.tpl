@@ -17,43 +17,33 @@
   <body>
     <div class="container">
         <div class="main">
-            <h1 style="margin-bottom:30px" >Worker Page</h1>
-            <form method="get">
-                <button formaction="/newitem" style="margin-bottom:30px;" type="submit" class="btn btn-outline-primary btn-lg">Add New Item</button>
-                <button formaction="/" style="margin-bottom:30px;" type="submit" class="btn btn-outline-primary btn-lg">Back to Main Page</button>
-                <button formaction="/t5items" style="margin-bottom:30px;" type="submit" class="btn btn-outline-primary btn-lg">Top 5 Products</button>
-                <button formaction="/t5customers" style="margin-bottom:30px;" type="submit" class="btn btn-outline-primary btn-lg">Top 5 Customers</button>
+            <h1>Top 5 Products</h1>
+
+            <form method="get" action="">
+                <button formaction="/worker" style="margin-bottom:30px;" type="submit" class="btn btn-outline-primary btn-lg">Back to Worker Page
+                </button>
             </form>
+
+            <p style="color:red"><b>Red + Bold Means the Item needs to be reordered.</b></p>
 
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Item ID</th>
                         <th>Name</th>
-                        <th>Purchase Price (£)</th>
-                        <th>Sale Price (£)</th>
+                        <th>Quantity Bought</th>
                         <th>Stock Level</th>
-                        <th>Add New Stock (enter number of stock to be added)</th>
                     </tr>
                 </thead>
                 <tbody>
-                    % for i in items:
+                    % for n in top5items:
                     <tr>
-                        <th scope="row">{{i[0]}}</th>
-                        <td>{{i[1]}}</td>
-                        <td>{{i[2]}}</td>
-                        <td>{{i[3]}}</td>
-                        % if i[4] <= 10:
-                            <td style="color:red">{{i[4]}}</td> <!-- stock level -->
+                        <td>{{n[0]}}</td>
+                        <td>{{n[1]}}</td>
+                        % if n[2] <= 2:
+                            <td style="color:red"><b>{{n[2]}}</b></td>
                         % else:
-                            <td>{{i[4]}}</td> <!-- stock level -->
-                        %end
-                        <td>
-                            <form method="post" action="/worker">
-                                <input type="number" name="newStock.{{i[0]}}">
-                                <input style="margin-left: 5px;" type="submit" Value="Submit">
-                            </form>
-                        </td>
+                            <td>{{n[2]}}</td>
+                        % end
                     </tr>
                     % end
                 </tbody>

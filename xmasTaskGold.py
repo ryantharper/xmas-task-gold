@@ -7,18 +7,19 @@ Extra Python Packages Used:
     - Bottle [web server]
 
 
--> 'qtyBought' column in ITEMS table to increment by quantity bought by customer
--> 'orders' column in CUSTOMERS table to increment by 1 every time user presses buy // items bought if cant do multiple items in order table
--> on web -> instead of "buy", "add to basket" --> basket shows on side, option to buy at bottom -> basket updates everytime user clicks add to basket
+------------------------------------------------------------------
+'Did you hear about the movie they made about the database admin?'
+
+'There was NoSQL.'
+------------------------------------------------------------------
+
 
 things to do/work out
+    - report
+    - reward
+    - tell user if top 5
 
-    multiple items in order table?
 
-    ->  maybe add "groupId" to orders table OR
-    --> create new table (group_orders) with groupId being 'custId'x'itemId'x'itemId' e.g. 1x22x13x.... [list it w for loop]
-
-    database for current order?
 
 """
 
@@ -100,12 +101,12 @@ class Store:
     # for first run -- CUSTOMERS
     def createTableCustomers(self):
         self.conn.execute("""CREATE TABLE IF NOT EXISTS customers (id INTEGER PRIMARY KEY, firstname TEXT NOT NULL,
-        lastname TEXT NOT NULL, address TEXT NOT NULL, username TEXT NOT NULL, orders INTEGER NOT NULL)""")
+        lastname TEXT NOT NULL, address TEXT NOT NULL, username TEXT NOT NULL, orders INTEGER NOT NULL, top5 BOOLEAN)""")
 
     # for first run -- ORDERS
     def createTableOrders(self):
         self.conn.execute("""CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, custId INTEGER,
-        itemId INTEGER, quantity INTEGER NOT NULL, cost REAL NOT NULL, FOREIGN KEY(itemId) REFERENCES items(id), FOREIGN KEY(custId) REFERENCES customers(id))""")
+        itemId INTEGER, quantity INTEGER NOT NULL, cost REAL NOT NULL, profit REAL NOT NULL, FOREIGN KEY(itemId) REFERENCES items(id), FOREIGN KEY(custId) REFERENCES customers(id))""")
 
     # --------------------- TABLE FOR CURRENT ORDER ---------------------
 
@@ -116,12 +117,12 @@ class Store:
     def insert_data_current_order(self, itemId, qty):
         self.c.execute("SELECT saleCost FROM items WHERE id={}".format(itemId))
         cost = self.c.fetchall()[0][0]
-        cost = qty * int(cost)
+        cost = qty * float(cost)
         self.conn.execute("INSERT INTO current_order (itemId, quantity, cost) VALUES (?, ?, ?)", (itemId, qty, cost))
         self.conn.commit()
 
     def getItemDetails_CurrentOrder(self):
-        self.c.execute("SELECT * FROM current_order") #[0]=id, [1]=itemId, [2]=qty, [3]=cost
+        self.c.execute("SELECT id, itemId, quantity, printf('%.2f', cost) FROM current_order") #[0]=id, [1]=itemId, [2]=qty, [3]=cost
         currentOrdersTuples = self.c.fetchall()
         # creates list of lists instead of list of tuples --> becomes mutable
         currentOrders = [list(e) for e in currentOrdersTuples]
@@ -129,13 +130,16 @@ class Store:
         # replaces itemId with item name
         for n in currentOrders:
             self.c.execute("SELECT name FROM items WHERE id={}".format(n[1]))
+            n.append(n[1]) # used for when buying -- adds item ID to list
             n[1] = self.c.fetchall()[0][0]
+
 
         return currentOrders
 
     def removeOrder(self, id_):
         self.conn.execute("DELETE FROM current_order WHERE id={}".format(id_))
         self.conn.commit()
+
     # --------------------- INSERTS ---------------------
 
     # ADD NEW -- ITEM
@@ -149,11 +153,14 @@ class Store:
         self.conn.commit()
 
     # ADD NEW -- ORDER
-    def insert_data_order(self,custId,itemId,qty):
+    def insert_data_order(self, custId, itemId, qty):
         self.c.execute("SELECT saleCost FROM items WHERE id={}".format(itemId))
-        costTotal = self.c.fetchall()[0][0]
+        costTotal = self.c.fetchone()[0]
+        self.c.execute("SELECT purchCost FROM items WHERE id={}".format(itemId))
+        purchCost = self.c.fetchone()[0]
         cost = int(qty) * costTotal
-        self.conn.execute("INSERT INTO orders (custId, itemId, quantity, cost) VALUES (?, ?, ?, ?)", (custId, itemId, qty, cost))
+        profit = cost-(int(qty)*purchCost)
+        self.conn.execute("INSERT INTO orders (custId, itemId, quantity, cost, profit) VALUES (?, ?, ?, ?, ?)", (custId, itemId, qty, cost, profit))
         self.conn.commit()
 
     # --------------------- others ---------------------
@@ -195,15 +202,54 @@ class Store:
 
     def printItems(self, usr):
         if usr == 1: # for shoppers
-            self.c.execute("SELECT * FROM items WHERE stock_lvl > 0") # gets item where the stock is not zero
+            self.c.execute("SELECT id, name, printf('%.2f', purchCost), printf('%.2f', saleCost), stock_lvl, cat, quantity_bought FROM items WHERE stock_lvl > 0") # gets item where the stock is not zero
             return self.c.fetchall()
         else: # for workers
-            self.c.execute("SELECT * FROM items") # gets all items
+            self.c.execute("SELECT id, name, printf('%.2f', purchCost), printf('%.2f', saleCost), stock_lvl, cat, quantity_bought FROM items") # gets all items
             return self.c.fetchall()
 
     def updateUserAcc(self, custId, col, new):
         self.conn.execute("UPDATE customers SET {0} = '{1}' WHERE id={2}".format(col, new, custId))
         self.conn.commit()
+
+    # TOP 5
+
+    # TOP 5 PRODUCTS
+
+    def top5products(self):
+        self.c.execute("SELECT name, quantity_bought, stock_lvl FROM items")
+        itemList = self.c.fetchall()
+        itemListT5 = sorted(itemList, key=lambda t: t[1], reverse=True)[:5] # sorts list of tuples by qty bought, then splices so its only top 5
+
+        return itemListT5
+
+    def top5custs(self):
+        self.c.execute("SELECT id, firstname, lastname FROM customers")
+        custIdList = self.c.fetchall() # [(id, fn, ln)] -- gets customer info and id
+
+        profitList = []
+        # collects profit made by customer and amount spent by customer
+        for i in custIdList:
+            self.c.execute("SELECT profit FROM orders WHERE custId={}".format(i[0]))
+            profits = self.c.fetchall()
+
+            self.c.execute("SELECT cost FROM orders WHERE custId={}".format(i[0]))
+            costs = self.c.fetchall()
+
+            profitList.append((i[0], float("%.2f"%sum([p[0] for p in profits])), i[1], i[2], float("%.2f"%sum([c[0] for c in costs]))))
+
+        # [(UserId, Profit, Fname, Lname, Costs)]
+        #print(profitList)
+
+        custListT5 = sorted(profitList, key=lambda t: t[1], reverse=True)[:5] # sorts list of tuples by PROFIT, then splices so its only top 5
+
+        for i in custListT5:
+            self.conn.execute("UPDATE customers SET top5 = 1 WHERE id={}".format(i[0]))
+            self.conn.commit()
+
+        return custListT5
+
+
 
 
 # USED IN CMD/IDLE
@@ -217,14 +263,11 @@ def main():
     else:
         print("Database exists, assuming table and initial items do too.")
 
-    #store.createTableCurrentOrders()
-    #print(store.showOrderHistory(1))
-    #store.insert_data_current_order(1,3)
-    #store.insert_data_current_order(3,6)
+    #store.insert_data_order(4)
 
-    #store.getItemDetails_CurrentOrder()
-    #loginUser(store)
-    #store.showOrderHistory(1)
-    #userOption(store)
+    #store.top5products()
 
-#main()
+    #store.top5custs()
+
+
+main()

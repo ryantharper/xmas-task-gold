@@ -1,27 +1,7 @@
 """
-THIS RUNS A WEB SERVER WITH BOTTLE, WITH THE 'silverBOTTLE.py' FILE AS THE 'BACKEND'
 
-BOTTLE --
-SILVER TO DO:
 
->SHOPPER OPTS:
-    - LOGIN
-    - CREATE ACCOUNT
-    - GO BACK [to worker/shopper page]
 
-> LOGGING IN:
-    - JUST REQUIRE USERNAME //// OR SELECT USER??
-
-> WHEN LOGGED IN:
-    - BUY ITEM
-    - SEE ORDER HISTORY
-    - EDIT ACCOUNT DETAILS
-    - DELETE ACCOUNT
-    - GO BACK [to worker/shopper page]
-
-    ;> maybe DO shopper?id=XX  -> this used for order table
-
-# database of current order? - wiped when user goes back/buys
 
 """
 # Bottle Imports
@@ -29,13 +9,12 @@ from bottle import route, run, static_file, template, request, redirect
 # Gets Store class from main Python file.
 from xmasTaskGold import Store
 # other imports
-import sqlite3 as lite
-import sys
+import sqlite3 as lite, sys, ast
 
 # Creates instance of the store class with the database and table names.
 store = Store(lite.connect('festiveshop.db'))
 
-
+top5c = store.top5custs()
 
 # Main Index Page
 @route('/')
@@ -115,27 +94,34 @@ def shopperPage():
     store.c.execute("SELECT firstname FROM customers WHERE id=?", (userId,))
     name = store.c.fetchone()[0]
 
-    """
-    ordItemId = request.forms.get('orderItemId')
-    if ordItemId == None:
-        pass
-    else:
-        store.removeOrder(ordItemId)
-    """
     return template('shoppermain', items=store.printItems(1), shopperName=name, basket=store.getItemDetails_CurrentOrder())
 
-# DOES STUFF WITH FORM -> when shopper buys item
+# POST -> 'add to cart' and 'X' buttons, adds and removes to/from cart
 @route('/shoppermain', method='POST')
 def shopperPage2():
     for k in request.forms:
-        print(k, file=sys.stderr)
+        # ADDING ITEM TO BASKET
         if k.startswith('numItems.'):
             itemId = k.partition('.')[-1]
             numItems = int(request.forms.get(k))
             store.insert_data_current_order(itemId, numItems)
-        elif k.startswith('orderItemId'):
+        # REMOVING ITEM FROM BASKET
+        elif k =='orderItemId':
             ordItemId = request.forms.get(k)
             store.removeOrder(ordItemId)
+        elif k == 'buyBasket':
+            basket = ast.literal_eval(request.forms.get(k)) # itemid = basket[4]
+            for order in basket:
+                store.updateStock(order[4], -order[2])
+                store.insert_data_order(userId,order[4],order[2])
+                store.createTableCurrentOrders()
+                # +1 in orders
+                store.conn.execute("UPDATE customers SET orders = orders + {0} WHERE id={1}".format(order[2], userId))
+                store.conn.execute("UPDATE items SET quantity_bought = quantity_bought + {0} WHERE id={1}".format(order[2], order[4]))
+                store.conn.commit()
+                print(order, file=sys.stderr)
+
+
 
     """
     for k in request.forms:
@@ -225,7 +211,20 @@ def newItemPage2():
     store.addItemWeb(nameItem, costItem, stockItem, catItem)
     return template('newitem')
 
+#################################################################
+# TOP 5
 
+# TOP 5 ITEMS
+@route('/t5items')
+def top5Items():
+    top5i = store.top5products()
+    #print(top5i, file=sys.stderr)
+    return template('top5items', top5items = top5i)
+
+
+@route('/t5customers')
+def top5Customers():
+    return template('top5customers', top5custs=top5c)
 
 
 run(host='localhost', port='8080', debug=True)
