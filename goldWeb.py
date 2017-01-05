@@ -1,6 +1,12 @@
 """
 
-- Prevent SQL injection
+- Prevent SQL injection (done?)
+
+install pip (thru cmd and get-pip.py) - then
+
+setx PATH "%PATH%;C:\Python34\Scripts"
+
+pip install beaker
 
 """
 # Bottle Imports
@@ -269,7 +275,7 @@ def top5Items():
 
 @route('/t5customers')
 def top5Customers():
-    return template('top5customers', top5custs=top5c)
+    return template('top5customers')
 
-run(app=bApp, host='192.168.0.17', port=8080)
+run(app=bApp, host='localhost', port=8080)
 #run(host='localhost', port='8080', debug=True)

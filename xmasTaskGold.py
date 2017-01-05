@@ -147,10 +147,12 @@ class Store:
         self.conn.execute("INSERT INTO items (name, purchCost, saleCost, stock_lvl, cat, quantity_bought) VALUES (?, ?, ?, ?, ?, ?)", (name, purchCost, saleCost, stock_lvl, cat, qtyBought))
         self.conn.commit()
 
+
     # ADD NEW -- CUSTOMER
     def insert_data_cust(self,fname,lname,addr,usrname,orders=0):
         self.conn.execute("INSERT INTO customers (firstname, lastname, address, username, orders) VALUES (?, ?, ?, ?, ?)", (fname, lname, addr, usrname, orders))
         self.conn.commit()
+        self.top5Customers()
 
     # ADD NEW -- ORDER
     def insert_data_order(self, custId, itemId, qty):
@@ -162,6 +164,9 @@ class Store:
         profit = cost-(int(qty)*purchCost)
         self.conn.execute("INSERT INTO orders (custId, itemId, quantity, cost, profit) VALUES (?, ?, ?, ?, ?)", (custId, itemId, qty, cost, profit))
         self.conn.commit()
+        self.conn.execute("UPDATE customers SET orders = orders + ? WHERE id=?", (qty,custId,))
+        self.conn.commit()
+        self.top5Customers()
 
     # --------------------- others ---------------------
 
@@ -169,6 +174,7 @@ class Store:
         self.conn.execute("DELETE FROM customers WHERE id={}".format(custId))
         self.conn.execute("DELETE FROM orders WHERE custId={}".format(custId))
         self.conn.commit()
+        self.top5Customers()
 
     def addItemWeb(self, name, purchCost, saleCost, stock_lvl, cat):
         self.insert_data_stock(name, purchCost, saleCost, stock_lvl, cat)
@@ -179,7 +185,7 @@ class Store:
         self.c.execute("SELECT stock_lvl FROM items WHERE id={}".format(idn)) # gets stock_lvl of the item corresponding to id
         currentStock = self.c.fetchall()[0][0] # gets stock_lvl
         newStock = currentStock + int(change) # alters stock level
-        self.conn.execute("UPDATE items SET stock_lvl = {0} WHERE ID={1}".format(newStock, idn)) # updates stock level to new stock level
+        self.conn.execute("UPDATE items SET stock_lvl = {0} WHERE id={1}".format(newStock, idn)) # updates stock level to new stock level
         self.conn.commit() # commits changes to table
 
     # SHOW ORDER HISTORY FOR USER
