@@ -1,1 +1,2 @@
-# xmas-task-gold
+# Christmas CS Task - Gold
+
